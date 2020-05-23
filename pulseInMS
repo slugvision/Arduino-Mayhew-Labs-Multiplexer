@@ -1,0 +1,42 @@
+float pulseInMS(int IO, int pin, int value, int timeout, int maxwidth, float calibration)
+{
+  //Input parameters
+  //       IO: Section I/O = 1 , I/O = 2, or I/O = 3
+  //      pin: Pin number in section block, 0-15
+  //    value: HIGH or LOW, pin level
+  //  timeout: do not wait for pulse to start beyond timeout, ignore if 0
+  // maxwidth: do not wait for pulse to complete beyond maxwidth width of pulse, ignore if 0
+  // calibration: calibration factor to be muliplied width pulsewidth, for CM = 0.5
+  
+
+  // Local variables:
+  bool no_pulse_and_no_timeout;               // no pulse started yet and timeout not reached
+  int start_pulse_timeout;                    // actual time elapsed, while waiting for pulse to start
+  bool pulse_active_and_maxwidth_not_reached; // pulse started, but maxwidth not reached
+  int pulsewidth;                             // Accumulated pulse width (to be returned to caller, when done)
+
+  // Initialization
+  start_pulse_timeout = 0;
+  pulsewidth = 0; 
+  no_pulse_and_no_timeout = true;
+  pulse_active_and_maxwidth_not_reached = false;
+  
+  while(no_pulse_and_no_timeout)    //Look for pulse to start and check if timeout
+  {
+    start_pulse_timeout++;
+    if ((start_pulse_timeout >= timeout) && timeout > 0) //Check if timeout reached if applicable,i.e. timeout>0
+    no_pulse_and_no_timeout = false; // Timeout detected if set, i.e. timeout>0 -> Leave loop
+    if (muxShield.digitalReadMS(IO,pin) == value) //Read pin from IO (1,2,3)   //Check if pulse startet
+    no_pulse_and_no_timeout = false; // Pulse now started -> Leave loop
+  }
+  pulse_active_and_maxwidth_not_reached = true; // Pulse now started, but not too long yet
+  while(pulse_active_and_maxwidth_not_reached)    //Measure length of pulse and check if max width reached
+  {
+   pulsewidth++; // Increment accumulated pulsewidth
+   if ((pulsewidth >= maxwidth) && maxwidth > 0)     //Check if max pulse width reached if applicable,i.e. maxwidth > 0
+   pulse_active_and_maxwidth_not_reached = false; //Max pulse width reached
+   if (muxShield.digitalReadMS(IO,pin) != value) //Read pin from IO (1,2,3)   //Check if pulse stopped
+   pulse_active_and_maxwidth_not_reached = false;  //Pulse stopped
+  }
+return (pulsewidth*calibration);
+}
